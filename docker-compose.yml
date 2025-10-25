@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: task_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: trello_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: task_backend
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      PORT: 4000
+      DATABASE_URL: "postgresql://appuser:changeme@postgres:5432/trello_dev?schema=public"
+      JWT_SECRET: "12345678999999"
+      REFRESH_JWT_SECRET: "alejandrorichardluis"
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: task_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=http://localhost:4000/api
+
+volumes:
+  pgdata:
