@@ -56,7 +56,7 @@ jobs:
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
           echo "✅ SSH key successfully configured"
 
-      # 6️⃣ Subir el proyecto al servidor EC2
+      # 6️⃣ Subir archivos al servidor EC2
       - name: 📤 Upload Project to EC2
         env:
           SSH_USER: ${{ secrets.EC2_USERNAME }}
@@ -69,7 +69,7 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             ./ $SSH_USER@$SSH_HOST:~/task-manager/
 
-      # 7️⃣ Reiniciar los contenedores en el servidor
+      # 7️⃣ Reiniciar contenedores Docker en el servidor
       - name: 🐳 Restart Docker Compose on EC2
         env:
           SSH_USER: ${{ secrets.EC2_USERNAME }}
@@ -87,7 +87,7 @@ jobs:
             sudo docker ps
           EOF
 
-      # 8️⃣ Limpieza final
+      # 8️⃣ Limpieza
       - name: 🧽 Cleanup temporary SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key
