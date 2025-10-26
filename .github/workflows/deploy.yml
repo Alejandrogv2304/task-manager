@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: 🚀 Deploy to EC2
 
 on:
   push:
@@ -10,30 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # 1️⃣ Checkout del código
+      - name: 🧾 Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      # 2️⃣ Configurar Node.js
+      - name: ⚙️ Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 20
 
-      - name: Install Backend Dependencies
+      # 3️⃣ Instalar dependencias y compilar Backend
+      - name: 📦 Install & Build Backend
         run: |
           cd apps/backend
-          npm install
-
-      - name: Build Backend
-        run: |
-          cd apps/backend
+          npm ci
           npm run build
 
-      - name: Install Frontend Dependencies
-        run: |
-          cd apps/frontend
-          npm install
-
-      - name: Build Frontend
+      # 4️⃣ Instalar dependencias y compilar Frontend
+      - name: 🎨 Install & Build Frontend
         env:
           VITE_API_URL: http://18.191.179.122:4000/api
           VITE_API_LOGIN: http://18.191.179.122:4000/api/auth/login
@@ -46,9 +41,11 @@ jobs:
           VITE_API_LISTS: http://18.191.179.122:4000/api/lists
         run: |
           cd apps/frontend
+          npm ci
           npm run build
 
-      - name: Configure SSH
+      # 5️⃣ Configurar acceso SSH seguro
+      - name: 🔐 Configure SSH Access
         env:
           SSH_KEY_BASE64: ${{ secrets.EC2_SSH_KEY }}
           SSH_HOST: ${{ secrets.EC2_HOST }}
@@ -58,7 +55,8 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
 
-      - name: Deploy to EC2
+      # 6️⃣ Sincronizar archivos con el servidor EC2
+      - name: 📤 Upload Project to EC2
         env:
           SSH_USER: ${{ secrets.EC2_USERNAME }}
           SSH_HOST: ${{ secrets.EC2_HOST }}
@@ -70,21 +68,25 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             ./ $SSH_USER@$SSH_HOST:~/task-manager/
 
-      - name: Restart Docker Containers
+      # 7️⃣ Reiniciar los contenedores en el servidor
+      - name: 🐳 Restart Docker Compose on EC2
         env:
           SSH_USER: ${{ secrets.EC2_USERNAME }}
           SSH_HOST: ${{ secrets.EC2_HOST }}
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            $SSH_USER@$SSH_HOST << 'EOF'
-              cd ~/task-manager
-              sudo docker-compose down
-              sudo docker-compose up -d
-              echo "Waiting for services to start..."
-              sleep 10
-              sudo docker-compose ps
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
+            set -e
+            cd ~/task-manager
+            echo "🧹 Stopping old containers..."
+            sudo docker-compose down || true
+            echo "🚀 Starting new containers..."
+            sudo docker-compose up -d --build
+            echo "⏳ Waiting for services to stabilize..."
+            sleep 10
+            sudo docker ps
           EOF
 
-      - name: Cleanup
+      # 8️⃣ Limpieza
+      - name: 🧽 Cleanup temporary SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key
