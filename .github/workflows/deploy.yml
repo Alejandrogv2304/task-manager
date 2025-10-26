@@ -1,93 +1,65 @@
-name: 🚀 Deploy to EC2
+name: Deploy to EC2
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
-      # 1️⃣ Checkout del código
-      - name: 🧾 Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      # 2️⃣ Configurar Node.js
-      - name: ⚙️ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
 
-      # 3️⃣ Instalar dependencias y compilar Backend
-      - name: 📦 Install & Build Backend
-        run: |
-          cd apps/backend
-          npm ci
-          npm run build
+    - name: Install and Build Backend
+      run: |
+        cd apps/backend
+        npm install
+        npm run build
 
-      # 4️⃣ Instalar dependencias y compilar Frontend
-      - name: 🎨 Install & Build Frontend
-        env:
-          VITE_API_URL: http://18.191.179.122:4000/api
-          VITE_API_LOGIN: http://18.191.179.122:4000/api/auth/login
-          VITE_API_REGISTER: http://18.191.179.122:4000/api/auth/register
-          VITE_API_LOGOUT: http://18.191.179.122:4000/api/auth/logout
-          VITE_API_JWT_REFRESH: http://18.191.179.122:4000/api/auth/refresh
-          VITE_API_USER: http://18.191.179.122:4000/api/user
-          VITE_API_WORKSPACES: http://18.191.179.122:4000/api/workspaces
-          VITE_API_BOARDS: http://18.191.179.122:4000/api/boards
-          VITE_API_LISTS: http://18.191.179.122:4000/api/lists
-        run: |
-          cd apps/frontend
-          npm ci
-          npm run build
+    - name: Install and Build Frontend
+      env:
+        VITE_API_URL: http://18.191.179.122:4000/api
+        VITE_API_LOGIN: http://18.191.179.122:4000/api/auth/login
+        VITE_API_REGISTER: http://18.191.179.122:4000/api/auth/register
+        VITE_API_LOGOUT: http://18.191.179.122:4000/api/auth/logout
+        VITE_API_JWT_REFRESH: http://18.191.179.122:4000/api/auth/refresh
+        VITE_API_USER: http://18.191.179.122:4000/api/user
+        VITE_API_WORKSPACES: http://18.191.179.122:4000/api/workspaces
+        VITE_API_BOARDS: http://18.191.179.122:4000/api/boards
+        VITE_API_LISTS: http://18.191.179.122:4000/api/lists
+      run: |
+        cd apps/frontend
+        npm install
+        npm run build
 
-      # 5️⃣ Configurar acceso SSH seguro
-      - name: 🔐 Configure SSH
-        env:
-          SSH_KEY_BASE64: ${{ secrets.EC2_SSH_KEY }}
-          SSH_HOST: ${{ secrets.EC2_HOST }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY_BASE64" | tr -d '\r' | base64 --decode > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
-          echo "✅ SSH key successfully configured"
+    - name: Deploy via SCP
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "apps/,docker-compose.yml"
+        target: "task-manager"
+        strip_components: 0
+        rm: true
 
-      # 6️⃣ Subir archivos al servidor EC2
-      - name: 📤 Upload Project to EC2
-        env:
-          SSH_USER: ${{ secrets.EC2_USERNAME }}
-          SSH_HOST: ${{ secrets.EC2_HOST }}
-        run: |
-          rsync -avz --delete \
-            --exclude 'node_modules' \
-            --exclude '.git' \
-            --exclude '.github' \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-            ./ $SSH_USER@$SSH_HOST:~/task-manager/
-
-      # 7️⃣ Reiniciar contenedores Docker en el servidor
-      - name: 🐳 Restart Docker Compose on EC2
-        env:
-          SSH_USER: ${{ secrets.EC2_USERNAME }}
-          SSH_HOST: ${{ secrets.EC2_HOST }}
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
-            set -e
-            cd ~/task-manager
-            echo "🧹 Stopping old containers..."
-            sudo docker-compose down || true
-            echo "🚀 Starting new containers..."
-            sudo docker-compose up -d --build
-            echo "⏳ Waiting for services to stabilize..."
-            sleep 10
-            sudo docker ps
-          EOF
-
-      # 8️⃣ Limpieza
-      - name: 🧽 Cleanup temporary SSH key
-        if: always()
-        run: rm -f ~/.ssh/deploy_key
+    - name: Restart Services
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd ~/task-manager
+          sudo docker-compose down
+          sudo docker-compose up -d
+          sleep 10
+          sudo docker-compose ps
