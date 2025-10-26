@@ -45,17 +45,18 @@ jobs:
           npm run build
 
       # 5️⃣ Configurar acceso SSH seguro
-      - name: 🔐 Configure SSH Access
+      - name: 🔐 Configure SSH
         env:
           SSH_KEY_BASE64: ${{ secrets.EC2_SSH_KEY }}
           SSH_HOST: ${{ secrets.EC2_HOST }}
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_KEY_BASE64" | base64 -d > ~/.ssh/deploy_key
+          echo "$SSH_KEY_BASE64" | tr -d '\r' | base64 --decode > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          echo "✅ SSH key successfully configured"
 
-      # 6️⃣ Sincronizar archivos con el servidor EC2
+      # 6️⃣ Subir el proyecto al servidor EC2
       - name: 📤 Upload Project to EC2
         env:
           SSH_USER: ${{ secrets.EC2_USERNAME }}
@@ -86,7 +87,7 @@ jobs:
             sudo docker ps
           EOF
 
-      # 8️⃣ Limpieza
+      # 8️⃣ Limpieza final
       - name: 🧽 Cleanup temporary SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key
