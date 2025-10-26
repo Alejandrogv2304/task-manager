@@ -2,80 +2,80 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20"
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
 
-      - name: Install Backend Dependencies
-        run: |
-          cd apps/backend
-          npm install
+    - name: Install Backend Dependencies
+      run: |
+        cd apps/backend
+        npm install
 
-      - name: Build Backend
-        run: |
-          cd apps/backend
-          npm run build
+    - name: Build Backend
+      run: |
+        cd apps/backend
+        npm run build
 
-      - name: Install Frontend Dependencies
-        run: |
-          cd apps/frontend
-          npm install
+    - name: Install Frontend Dependencies
+      run: |
+        cd apps/frontend
+        npm install
 
-      - name: Build Frontend
-        env:
-          VITE_API_URL: http://18.191.179.122:4000/api
-          VITE_API_LOGIN: http://18.191.179.122:4000/api/auth/login
-          VITE_API_REGISTER: http://18.191.179.122:4000/api/auth/register
-          VITE_API_LOGOUT: http://18.191.179.122:4000/api/auth/logout
-          VITE_API_JWT_REFRESH: http://18.191.179.122:4000/api/auth/refresh
-          VITE_API_USER: http://18.191.179.122:4000/api/user
-          VITE_API_WORKSPACES: http://18.191.179.122:4000/api/workspaces
-          VITE_API_BOARDS: http://18.191.179.122:4000/api/boards
-          VITE_API_LISTS: http://18.191.179.122:4000/api/lists
-        run: |
-          cd apps/frontend
-          npm run build
+    - name: Build Frontend
+      env:
+        VITE_API_URL: http://18.191.179.122:4000/api
+        VITE_API_LOGIN: http://18.191.179.122:4000/api/auth/login
+        VITE_API_REGISTER: http://18.191.179.122:4000/api/auth/register
+        VITE_API_LOGOUT: http://18.191.179.122:4000/api/auth/logout
+        VITE_API_JWT_REFRESH: http://18.191.179.122:4000/api/auth/refresh
+        VITE_API_USER: http://18.191.179.122:4000/api/user
+        VITE_API_WORKSPACES: http://18.191.179.122:4000/api/workspaces
+        VITE_API_BOARDS: http://18.191.179.122:4000/api/boards
+        VITE_API_LISTS: http://18.191.179.122:4000/api/lists
+      run: |
+        cd apps/frontend
+        npm run build
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+    - name: Configure SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to EC2
-        run: |
-          rsync -avz --delete \
-            --exclude 'node_modules' \
-            --exclude '.git' \
-            --exclude '.github' \
-            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-            ./ ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/task-manager/
+    - name: Deploy to EC2
+      run: |
+        rsync -avz --delete \
+          --exclude 'node_modules' \
+          --exclude '.git' \
+          --exclude '.github' \
+          -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+          ./ ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/task-manager/
 
-      - name: Restart Docker Containers
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
-              cd ~/task-manager
-              sudo docker-compose down
-              sudo docker-compose up -d
-              echo "Waiting for services to start..."
-              sleep 10
-              sudo docker-compose ps
-          EOF
+    - name: Restart Docker Containers
+      run: |
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+          ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd ~/task-manager
+            sudo docker-compose down
+            sudo docker-compose up -d
+            echo "Waiting for services to start..."
+            sleep 10
+            sudo docker-compose ps
+        EOF
 
-      - name: Cleanup
-        if: always()
-        run: rm -f ~/.ssh/id_rsa
+    - name: Cleanup
+      if: always()
+      run: rm -f ~/.ssh/deploy_key
