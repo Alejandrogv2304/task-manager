@@ -5,17 +5,32 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+
+# Variables de entorno para Vite (se pasan en tiempo de build)
+ARG VITE_API_URL
+ARG VITE_API_LOGIN
+ARG VITE_API_REGISTER
+ARG VITE_API_LOGOUT
+ARG VITE_API_JWT_REFRESH
+ARG VITE_API_USER
+ARG VITE_API_WORKSPACES
+ARG VITE_API_BOARDS
+ARG VITE_API_LISTS
+
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_API_LOGIN=$VITE_API_LOGIN
+ENV VITE_API_REGISTER=$VITE_API_REGISTER
+ENV VITE_API_LOGOUT=$VITE_API_LOGOUT
+ENV VITE_API_JWT_REFRESH=$VITE_API_JWT_REFRESH
+ENV VITE_API_USER=$VITE_API_USER
+ENV VITE_API_WORKSPACES=$VITE_API_WORKSPACES
+ENV VITE_API_BOARDS=$VITE_API_BOARDS
+ENV VITE_API_LISTS=$VITE_API_LISTS
+
 RUN npm run build
 
 # Etapa 2: Servir con Nginx
 FROM nginx:1.25-alpine
-
-# Copia los archivos compilados de Vite
 COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copia una configuración personalizada de nginx (opcional)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
-
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]

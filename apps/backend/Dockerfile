@@ -1,5 +1,5 @@
 # Etapa 1: Build
-FROM node:20-alpine AS builder
+FROM node:20 AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Etapa 2: Runtime
-FROM node:20-alpine
+FROM node:20
 
 WORKDIR /app
 
@@ -27,5 +27,4 @@ ENV NODE_ENV=production
 ENV PORT=4000
 
 EXPOSE 4000
-
 CMD ["node", "dist/main.js"]
