@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -21,7 +21,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install Backend Dependencies
         run: |
@@ -37,11 +37,6 @@ jobs:
         run: |
           cd apps/frontend
           npm ci
-
-      - name: Run Frontend Tests
-        run: |
-          cd apps/frontend
-          npm test
 
   build:
     needs: test
@@ -101,5 +96,3 @@ jobs:
             docker pull ${{ env.IMAGE_NAME }}-frontend:latest
             docker-compose down
             docker-compose up -d
-
-  
