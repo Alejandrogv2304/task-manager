@@ -51,14 +51,17 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Remove old Docker images
+        run: docker image prune -af
+      
       - name: Build and Push Backend Image
         uses: docker/build-push-action@v6
         with:
           context: ./apps/backend
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}-backend:latest
-            ${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
+            ${{ secrets.IMAGE_NAME }}-backend:latest
+            ${{ secrets.IMAGE_NAME }}-backend:${{ github.sha }}
 
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v6
@@ -66,8 +69,8 @@ jobs:
           context: ./apps/frontend
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}-frontend:latest
-            ${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
+            ${{ secrets.IMAGE_NAME }}-frontend:latest
+            ${{ secrets.IMAGE_NAME }}-frontend:${{ github.sha }}
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -92,7 +95,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/task-manager
-            docker pull ${{ env.IMAGE_NAME }}-backend:latest
-            docker pull ${{ env.IMAGE_NAME }}-frontend:latest
+            docker pull ${{ secrets.IMAGE_NAME }}-backend:latest
+            docker pull ${{ secrets.IMAGE_NAME }}-frontend:latest
             docker-compose down
             docker-compose up -d --build
