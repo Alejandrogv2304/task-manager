@@ -95,7 +95,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/task-manager
-            docker pull ${{ secrets.IMAGE_NAME }}-backend:latest
-            docker pull ${{ secrets.IMAGE_NAME }}-frontend:latest
-            docker-compose down
-            docker-compose up -d --build
+            sudo docker pull ${{ secrets.IMAGE_NAME }}-backend:latest
+            sudo docker pull ${{ secrets.IMAGE_NAME }}-frontend:latest
+            sudo docker-compose down
+            sudo docker-compose up -d --build
