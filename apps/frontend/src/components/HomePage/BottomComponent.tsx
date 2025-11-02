@@ -48,8 +48,7 @@ const BottomComponent = () => {
             lineHeight: { xs: '1rem', sm: '1.5rem' }
           }}
         >
-          You can create your projects in a personalized way, so you
-          can see the current tasks from a fresh perspective.
+          Prueba cambio Pipeline CI/CD.
         </Typography>
         <Box
           component="img"
