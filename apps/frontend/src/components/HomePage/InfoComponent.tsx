@@ -12,7 +12,7 @@ const InfoComponent = () => {
       }}
     >
       <Typography variant="subtitle1" component={'p'}>
-        Accelerate your teams' work with
+        Cambio Pipeline CI-CD
         <Typography
           variant="subtitle1"
           component={'span'}

@@ -57,9 +57,9 @@ jobs:
           context: ./apps/backend
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}-backend:latest
-            ${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
-          no-cache: true  # ← Forzar rebuild sin caché
+            ${{ secrets.IMAGE_NAME }}-backend:latest
+            ${{ secrets.IMAGE_NAME }}-backend:${{ github.sha }}
+          no-cache: true
 
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v6
@@ -77,17 +77,9 @@ jobs:
             VITE_API_BOARDS=http://18.191.179.122:4000/api/boards
             VITE_API_LISTS=http://18.191.179.122:4000/api/lists
           tags: |
-            ${{ env.IMAGE_NAME }}-frontend:latest
-            ${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
-          no-cache: true  # ← Forzar rebuild sin caché
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts
-          path: |
-            apps/backend/dist
-            apps/frontend/dist
+            ${{ secrets.IMAGE_NAME }}-frontend:latest
+            ${{ secrets.IMAGE_NAME }}-frontend:${{ github.sha }}
+          no-cache: true
 
   deploy:
     needs: build
@@ -107,19 +99,24 @@ jobs:
             export IMAGE_NAME=${{ secrets.IMAGE_NAME }}
             cd ~/task-manager
             
-            # Pull nuevas imágenes
-            sudo docker pull $IMAGE_NAME-backend:latest
-            sudo docker pull $IMAGE_NAME-frontend:latest
+            echo "📥 Pulling latest images..."
+            sudo docker pull ${IMAGE_NAME}-backend:latest
+            sudo docker pull ${IMAGE_NAME}-frontend:latest
             
-            # Detener y eliminar contenedores viejos
+            echo "🛑 Stopping containers..."
             sudo docker-compose down
             
-            # Limpiar imágenes antiguas
+            echo "🧹 Cleaning old images..."
             sudo docker image prune -af
             
-            # Levantar con las nuevas imágenes
+            echo "🚀 Starting new containers..."
             sudo docker-compose up -d
             
-            # Verificar estado
-            sleep 10
+            echo "⏳ Waiting for services to start..."
+            sleep 15
+            
+            echo "✅ Checking container status..."
             sudo docker-compose ps
+            
+            echo "📋 Backend logs (last 20 lines):"
+            sudo docker-compose logs --tail=20 backend

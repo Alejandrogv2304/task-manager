@@ -20,7 +20,7 @@ services:
       retries: 5
 
   backend:
-    image: ${IMAGE_NAME:-tuusuario/task-manager}-backend:latest  
+    image: ${IMAGE_NAME:-tuusuario/task-manager}-backend:latest
     container_name: task_backend
     restart: always
     depends_on:
@@ -34,17 +34,15 @@ services:
       NODE_ENV: production
     ports:
       - "4000:4000"
-    
 
   frontend:
-    image: ${IMAGE_NAME:-alejandro231011/task-manager}-frontend:latest  # ← CAMBIO: usa imagen de Docker Hub
+    image: ${IMAGE_NAME:-tuusuario/task-manager}-frontend:latest
     container_name: task_frontend
     restart: always
     depends_on:
       - backend
     ports:
-      - "5173:80"  
+      - "5173:80"
 
 volumes:
   pgdata:
-  
