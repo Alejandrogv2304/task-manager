@@ -20,16 +20,12 @@ services:
       retries: 5
 
   backend:
-    image: node:20
+    image: ${IMAGE_NAME:-tuusuario/task-manager}-backend:latest  
     container_name: task_backend
     restart: always
     depends_on:
       postgres:
         condition: service_healthy
-    working_dir: /app
-    volumes:
-      - ./apps/backend:/app
-      - backend_node_modules:/app/node_modules
     environment:
       PORT: 4000
       DATABASE_URL: "postgresql://appuser:changeme@postgres:5432/trello_dev?schema=public"
@@ -38,25 +34,17 @@ services:
       NODE_ENV: production
     ports:
       - "4000:4000"
-    command: sh -c "npm install --omit=dev && npx prisma generate && npx prisma migrate deploy && node dist/main.js"
+    
 
   frontend:
-    image: node:20-alpine
+    image: ${IMAGE_NAME:-alejandro231011/task-manager}-frontend:latest  # ← CAMBIO: usa imagen de Docker Hub
     container_name: task_frontend
     restart: always
     depends_on:
       - backend
-    working_dir: /app
-    volumes:
-      - ./apps/frontend:/app
-      - frontend_node_modules:/app/node_modules
     ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:4000/api
-    command: sh -c "npm install -g serve && serve -s dist -l 5173"
+      - "5173:80"  
 
 volumes:
   pgdata:
-  backend_node_modules:
-  frontend_node_modules:
+  

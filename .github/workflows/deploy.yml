@@ -9,7 +9,7 @@ on:
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
   DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-  IMAGE_NAME: tuusuario/task-manager
+  IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
 
 jobs:
   test:
@@ -51,26 +51,35 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Remove old Docker images
-        run: docker image prune -af
-      
       - name: Build and Push Backend Image
         uses: docker/build-push-action@v6
         with:
           context: ./apps/backend
           push: true
           tags: |
-            ${{ secrets.IMAGE_NAME }}-backend:latest
-            ${{ secrets.IMAGE_NAME }}-backend:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}-backend:latest
+            ${{ env.IMAGE_NAME }}-backend:${{ github.sha }}
+          no-cache: true  # ← Forzar rebuild sin caché
 
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v6
         with:
           context: ./apps/frontend
           push: true
+          build-args: |
+            VITE_API_URL=http://18.191.179.122:4000/api
+            VITE_API_LOGIN=http://18.191.179.122:4000/api/auth/login
+            VITE_API_REGISTER=http://18.191.179.122:4000/api/auth/register
+            VITE_API_LOGOUT=http://18.191.179.122:4000/api/auth/logout
+            VITE_API_JWT_REFRESH=http://18.191.179.122:4000/api/auth/refresh
+            VITE_API_USER=http://18.191.179.122:4000/api/user
+            VITE_API_WORKSPACES=http://18.191.179.122:4000/api/workspaces
+            VITE_API_BOARDS=http://18.191.179.122:4000/api/boards
+            VITE_API_LISTS=http://18.191.179.122:4000/api/lists
           tags: |
-            ${{ secrets.IMAGE_NAME }}-frontend:latest
-            ${{ secrets.IMAGE_NAME }}-frontend:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}-frontend:latest
+            ${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
+          no-cache: true  # ← Forzar rebuild sin caché
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -93,9 +102,24 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: IMAGE_NAME
           script: |
+            export IMAGE_NAME=${{ secrets.IMAGE_NAME }}
             cd ~/task-manager
-            sudo docker pull ${{ secrets.IMAGE_NAME }}-backend:latest
-            sudo docker pull ${{ secrets.IMAGE_NAME }}-frontend:latest
+            
+            # Pull nuevas imágenes
+            sudo docker pull $IMAGE_NAME-backend:latest
+            sudo docker pull $IMAGE_NAME-frontend:latest
+            
+            # Detener y eliminar contenedores viejos
             sudo docker-compose down
-            sudo docker-compose up -d --build
+            
+            # Limpiar imágenes antiguas
+            sudo docker image prune -af
+            
+            # Levantar con las nuevas imágenes
+            sudo docker-compose up -d
+            
+            # Verificar estado
+            sleep 10
+            sudo docker-compose ps
