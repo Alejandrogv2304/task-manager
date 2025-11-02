@@ -21,7 +21,7 @@ const Footer = () => {
           alignItems: 'center'
         }}
       >
-        Copyright © Laszlo Kis 2024
+        Copyright © Alejandro Gómez 2025
       </Typography>
       <Link
         href="https://github.com/ev0clu"

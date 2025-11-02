@@ -32,8 +32,7 @@ const BottomComponent = () => {
             textAlign: 'center'
           }}
         >
-          You can see your work from a completely different
-          perspective
+          Prueba Cambio Pipeline CI/CD 2.
         </Typography>
         <Typography
           variant="h6"
