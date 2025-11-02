@@ -54,7 +54,7 @@ function CardComponent() {
         />
         <CardContent>
           <Typography variant="h5" sx={{ mb: '0.5rem' }}>
-            Cambio Pipeline después de cambio
+            Cambio de descripción
           </Typography>
           <Typography variant="subtitle2">
             Organize tasks and meet deadlines.
